@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       429,
       {
         error: guest
-          ? `今天免费解读已用完（${quota.limit} 次）。登录后每天可解读 20 次。`
+          ? `今天免费解读已用完（${quota.limit} 次）。微信登录后每天可解读 20 次。`
           : `今天解读次数已用完（${quota.limit} 次），明天再来。`,
         code: guest ? 'QUOTA_EXCEEDED_GUEST' : 'QUOTA_EXCEEDED_MEMBER',
         kind: quota.subject.kind,

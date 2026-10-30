@@ -2,9 +2,9 @@ import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import {
   COOKIE_GUEST,
-  COOKIE_SESSION,
   GUEST_DAILY_LIMIT,
   MEMBER_DAILY_LIMIT,
+  COOKIE_SESSION,
 } from "@/lib/quota/constants";
 import { consumeQuota, peekQuota } from "@/lib/quota/store";
 import { verifySessionToken } from "./session";
@@ -12,20 +12,28 @@ import { verifySessionToken } from "./session";
 export type AuthSubject = {
   kind: "guest" | "member";
   id: string;
-  email?: string;
+  nickname?: string;
+  openid?: string;
   limit: number;
-  subjectKey: string; // quota 计数键
+  subjectKey: string;
 };
 
-export async function readSession(): Promise<{ uid: string; email: string } | null> {
+export async function readSession(): Promise<{
+  uid: string;
+  openid: string;
+  nickname?: string;
+} | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_SESSION)?.value;
   const payload = verifySessionToken(token);
   if (!payload) return null;
-  return { uid: payload.uid, email: payload.email };
+  return {
+    uid: payload.uid,
+    openid: payload.openid,
+    nickname: payload.nickname,
+  };
 }
 
-/** 确保游客 cookie 存在，返回 guest id */
 export async function ensureGuestId(): Promise<{ id: string; setCookie: boolean }> {
   const jar = await cookies();
   const existing = jar.get(COOKIE_GUEST)?.value;
@@ -47,7 +55,8 @@ export async function resolveSubject(): Promise<{
       subject: {
         kind: "member",
         id: session.uid,
-        email: session.email,
+        nickname: session.nickname,
+        openid: session.openid,
         limit: MEMBER_DAILY_LIMIT,
         subjectKey: `u:${session.uid}`,
       },
@@ -83,6 +92,5 @@ export async function checkAndConsumeInterpretQuota() {
 
 export function guestCookieHeader(id: string): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  // 1 year
   return `${COOKIE_GUEST}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`;
 }

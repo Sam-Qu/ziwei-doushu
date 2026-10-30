@@ -1,76 +1,78 @@
 import { getStore } from "@/lib/quota/store";
-import { hashPassword, verifyPassword } from "./password";
 import { newUserId } from "./session";
 
 export type UserRecord = {
   uid: string;
-  email: string;
-  passwordHash: string;
+  openid: string;
+  unionid?: string;
+  nickname?: string;
+  headimgurl?: string;
   createdAt: string;
+  updatedAt: string;
 };
 
-function emailKey(email: string): string {
-  return `user:email:${email.trim().toLowerCase()}`;
+function openidKey(openid: string): string {
+  return `user:wx:openid:${openid}`;
+}
+
+function unionidKey(unionid: string): string {
+  return `user:wx:unionid:${unionid}`;
 }
 
 function uidKey(uid: string): string {
   return `user:uid:${uid}`;
 }
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
-
-export async function createUser(
-  emailRaw: string,
-  password: string
-): Promise<{ ok: true; user: UserRecord } | { ok: false; error: string }> {
-  const email = normalizeEmail(emailRaw);
-  if (!isValidEmail(email)) return { ok: false, error: "邮箱格式不对" };
-  if (password.length < 6) return { ok: false, error: "密码至少 6 位" };
-
+/** 用微信 openid/unionid 创建或更新会员 */
+export async function upsertWechatUser(input: {
+  openid: string;
+  unionid?: string;
+  nickname?: string;
+  headimgurl?: string;
+}): Promise<UserRecord> {
   const store = getStore();
-  const existing = await store.getString(emailKey(email));
-  if (existing) return { ok: false, error: "这个邮箱已经注册过了" };
+  const now = new Date().toISOString();
 
-  const user: UserRecord = {
-    uid: newUserId(),
-    email,
-    passwordHash: hashPassword(password),
-    createdAt: new Date().toISOString(),
-  };
-  const json = JSON.stringify(user);
-  // 先写 uid，再写 email 索引；email 已存在则视为冲突
-  await store.set(uidKey(user.uid), json);
-  const again = await store.getString(emailKey(email));
-  if (again) {
-    await store.del(uidKey(user.uid));
-    return { ok: false, error: "这个邮箱已经注册过了" };
+  let existingRaw: string | null = null;
+  if (input.unionid) {
+    existingRaw = await store.getString(unionidKey(input.unionid));
   }
-  await store.set(emailKey(email), json);
-  return { ok: true, user };
-}
+  if (!existingRaw) {
+    existingRaw = await store.getString(openidKey(input.openid));
+  }
 
-export async function authenticate(
-  emailRaw: string,
-  password: string
-): Promise<{ ok: true; user: UserRecord } | { ok: false; error: string }> {
-  const email = normalizeEmail(emailRaw);
-  const store = getStore();
-  const raw = await store.getString(emailKey(email));
-  if (!raw) return { ok: false, error: "邮箱或密码不对" };
   let user: UserRecord;
-  try {
-    user = JSON.parse(raw) as UserRecord;
-  } catch {
-    return { ok: false, error: "账号数据异常" };
+  if (existingRaw) {
+    try {
+      user = JSON.parse(existingRaw) as UserRecord;
+    } catch {
+      user = {
+        uid: newUserId(),
+        openid: input.openid,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+    user.openid = input.openid;
+    if (input.unionid) user.unionid = input.unionid;
+    if (input.nickname) user.nickname = input.nickname;
+    if (input.headimgurl) user.headimgurl = input.headimgurl;
+    user.updatedAt = now;
+  } else {
+    user = {
+      uid: newUserId(),
+      openid: input.openid,
+      unionid: input.unionid,
+      nickname: input.nickname,
+      headimgurl: input.headimgurl,
+      createdAt: now,
+      updatedAt: now,
+    };
   }
-  if (!verifyPassword(password, user.passwordHash)) {
-    return { ok: false, error: "邮箱或密码不对" };
-  }
-  return { ok: true, user };
+
+  const json = JSON.stringify(user);
+  await store.set(uidKey(user.uid), json);
+  await store.set(openidKey(user.openid), json);
+  if (user.unionid) await store.set(unionidKey(user.unionid), json);
+  return user;
 }

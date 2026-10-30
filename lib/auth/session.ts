@@ -3,14 +3,15 @@ import { COOKIE_SESSION } from "@/lib/quota/constants";
 
 export type SessionPayload = {
   uid: string;
-  email: string;
+  openid: string;
+  unionid?: string;
+  nickname?: string;
   exp: number; // unix seconds
 };
 
 function secret(): string {
   const s = process.env.SESSION_SECRET;
   if (s && s.length >= 16) return s;
-  // 本地未配置时用固定开发密钥（生产务必设置 SESSION_SECRET）
   if (process.env.NODE_ENV !== "production") {
     return "dev-only-session-secret-change-me";
   }
@@ -26,10 +27,15 @@ function sign(data: string): string {
   return createHmac("sha256", secret()).update(data).digest("base64url");
 }
 
-export function createSessionToken(uid: string, email: string, days = 30): string {
+export function createSessionToken(
+  user: { uid: string; openid: string; unionid?: string; nickname?: string },
+  days = 30
+): string {
   const payload: SessionPayload = {
-    uid,
-    email,
+    uid: user.uid,
+    openid: user.openid,
+    unionid: user.unionid,
+    nickname: user.nickname,
     exp: Math.floor(Date.now() / 1000) + days * 24 * 60 * 60,
   };
   const body = b64url(JSON.stringify(payload));
@@ -46,7 +52,7 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
-    if (!payload?.uid || !payload?.email || !payload?.exp) return null;
+    if (!payload?.uid || !payload?.openid || !payload?.exp) return null;
     if (payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
