@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import AuthButton from '@/components/AuthButton';
 import BirthForm from '@/components/BirthForm';
 import ChartBoard from '@/components/ChartBoard';
 import InsightPanel from '@/components/InsightPanel';
@@ -17,9 +18,10 @@ export default function ChartPage() {
   if (!chart) {
     return (
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px' }}>
-        <p style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ color: '#b8860b', textDecoration: 'none', fontSize: 14 }}>← 回主页</a>
-        </p>
+          <AuthButton />
+        </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>开始排盘</h1>
         <p style={{ color: '#888', marginBottom: 32, fontSize: 15, lineHeight: 1.7 }}>
           填写生日，马上看命盘和解读。

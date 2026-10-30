@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { getMiniMax, getMiniMaxModel } from '@/lib/ai/minimax';
 import { SYSTEM_PROMPT, buildUserMessage } from '@/lib/ai/prompt';
+import {
+  checkAndConsumeInterpretQuota,
+  guestCookieHeader,
+} from '@/lib/auth/request';
 
 export const runtime = 'nodejs';
 
@@ -11,7 +15,56 @@ function sseLine(payload: string): Uint8Array {
   return new TextEncoder().encode(`data: ${payload}\n\n`);
 }
 
+function jsonError(
+  status: number,
+  body: Record<string, unknown>,
+  extraHeaders?: Record<string, string>
+) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(extraHeaders ?? {}),
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
+  // ── 日限：游客 2 / 登录会员 20（Asia/Shanghai 自然日）──
+  let quota;
+  try {
+    quota = await checkAndConsumeInterpretQuota();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '额度服务异常';
+    return jsonError(503, {
+      error: msg,
+      code: 'QUOTA_STORE_UNAVAILABLE',
+    });
+  }
+
+  const guestHeaders: Record<string, string> = {};
+  if (quota.setGuestCookie) {
+    guestHeaders['Set-Cookie'] = guestCookieHeader(quota.guestId);
+  }
+
+  if (!quota.allowed) {
+    const guest = quota.subject.kind === 'guest';
+    return jsonError(
+      429,
+      {
+        error: guest
+          ? `今天免费解读已用完（${quota.limit} 次）。微信登录后每天可解读 20 次。`
+          : `今天解读次数已用完（${quota.limit} 次），明天再来。`,
+        code: guest ? 'QUOTA_EXCEEDED_GUEST' : 'QUOTA_EXCEEDED_MEMBER',
+        kind: quota.subject.kind,
+        limit: quota.limit,
+        used: quota.used,
+        remaining: 0,
+      },
+      guestHeaders
+    );
+  }
+
   let body: {
     chart?: ZiweiChart;
     messages?: ChatTurn[];
@@ -21,27 +74,18 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: '无效的 JSON 请求体' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError(400, { error: '无效的 JSON 请求体' }, guestHeaders);
   }
 
   const chart = body.chart;
   const messages = Array.isArray(body.messages) ? body.messages : [];
 
   if (!chart || typeof chart !== 'object' || !Array.isArray(chart.palaces)) {
-    return new Response(JSON.stringify({ error: '缺少有效的 chart 字段' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError(400, { error: '缺少有效的 chart 字段' }, guestHeaders);
   }
 
   if (messages.length === 0) {
-    return new Response(JSON.stringify({ error: '缺少 messages' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError(400, { error: '缺少 messages' }, guestHeaders);
   }
 
   let client;
@@ -49,10 +93,7 @@ export async function POST(req: NextRequest) {
     client = getMiniMax();
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'AI 配置错误';
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError(500, { error: msg }, guestHeaders);
   }
 
   const model = getMiniMaxModel();
@@ -121,6 +162,11 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      'X-Quota-Limit': String(quota.limit),
+      'X-Quota-Used': String(quota.used),
+      'X-Quota-Remaining': String(Math.max(0, quota.limit - quota.used)),
+      'X-Quota-Kind': quota.subject.kind,
+      ...guestHeaders,
     },
   });
 }

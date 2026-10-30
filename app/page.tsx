@@ -1,6 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
+import AuthButton from '@/components/AuthButton';
 import BirthForm from '@/components/BirthForm';
 import ChartBoard from '@/components/ChartBoard';
 import InsightPanel from '@/components/InsightPanel';
@@ -93,7 +94,10 @@ export default function HomePage() {
         <div className="text-sm tracking-[0.25em] font-medium" style={{ color: c.goldSolid }}>
           紫微命盘
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <AuthButton />
+          <ThemeToggle />
+        </div>
       </nav>
 
       <header className="px-5 pt-10 pb-6 text-center max-w-xl mx-auto">
