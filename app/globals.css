@@ -49,6 +49,16 @@
   --bg-card: #FFFFFF;
   --bg-page: #fbf6e8;
 
+  /* InsightPanel / legacy aliases */
+  --t-gold: var(--ac);
+  --t-text: var(--tx-0);
+  --t-text2: var(--tx-1);
+  --t-faint: var(--tx-3);
+  --t-border: var(--bdr);
+  --t-card: var(--bg-card);
+  --t-bg: var(--bg-0);
+
+
   /* 圆角 */
   --r-xs:  4px;
   --r-sm:  8px;
@@ -88,6 +98,14 @@
 
   --bg-card: rgba(255,255,255,0.04);
   --bg-page: #020810;
+
+  --t-gold: var(--ac);
+  --t-text: var(--tx-0);
+  --t-text2: var(--tx-1);
+  --t-faint: var(--tx-3);
+  --t-border: var(--bdr);
+  --t-card: var(--bg-card);
+  --t-bg: var(--bg-0);
 }
 
 /* ─── 全局基础 ───────────────────────────────────────────── */
