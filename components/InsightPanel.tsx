@@ -289,7 +289,19 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
       if (res.status === 404) throw new Error('api-missing');
       if (!res.ok) {
         let detail = '';
-        try { detail = await res.text(); } catch { /* ignore */ }
+        let code = '';
+        try {
+          const raw = await res.text();
+          detail = raw;
+          try {
+            const parsed = JSON.parse(raw) as { error?: string; code?: string };
+            if (parsed?.error) detail = parsed.error;
+            if (parsed?.code) code = parsed.code;
+          } catch { /* plain text */ }
+        } catch { /* ignore */ }
+        if (res.status === 429 || code.startsWith('QUOTA_EXCEEDED')) {
+          throw new Error(detail || '今日解读次数已用完');
+        }
         throw new Error(detail || '请求失败');
       }
       if (!res.body) throw new Error('无响应流');
