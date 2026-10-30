@@ -150,11 +150,11 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
   return (
     <div className="space-y-0.5">
       {lines.map((line, i) => {
-        const sectionMatch = line.match(/^\*\*【(.+?)】\*\*$/);
+        const sectionMatch = line.match(/^(?:#{1,6}\s*)?(?:\*\*)?【(.+?)】(?:\*\*)?\s*$/);
         if (sectionMatch) {
           return (
             <div key={i} className="pt-3 pb-0.5 first:pt-0">
-              <span className="text-[11px] font-semibold tracking-wide" style={{ color: 'var(--t-gold)' }}>
+              <span className="text-[11px] font-semibold tracking-wide" style={{ color: '#b8922a' }}>
                 【{sectionMatch[1]}】
               </span>
             </div>
@@ -163,11 +163,11 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
         if (line.trim() === '') return <div key={i} className="h-1" />;
         const parts = line.split(/\*\*(.+?)\*\*/);
         return (
-          <div key={i} className="text-[11px] leading-relaxed" style={{ color: 'var(--t-text2)' }}>
+          <div key={i} className="text-[11px] leading-relaxed" style={{ color: '#1a1a18' }}>
             {parts.map((part, j) =>
               j % 2 === 0
                 ? part
-                : <strong key={j} className="font-medium" style={{ color: 'var(--t-text)' }}>{part}</strong>
+                : <strong key={j} className="font-medium" style={{ color: '#0d0d0b' }}>{part}</strong>
             )}
           </div>
         );
@@ -175,7 +175,7 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
       {streaming && (
         <span
           className="inline-block w-1.5 h-3 ml-0.5 animate-pulse rounded-sm align-middle"
-          style={{ background: 'var(--t-gold)', opacity: 0.6 }}
+          style={{ background: '#b8922a', opacity: 0.6 }}
         />
       )}
     </div>
@@ -189,6 +189,7 @@ export default function InsightPanel({ chart, selectedPalace, selectedSiHua }: I
   const [activeTopic, setActiveTopic] = useState<string>('overview');
   const messagesRef = useRef<Message[]>([]); // always-current copy for closures
   const loadingRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const autoLoaded = useRef(false);
   const lastPalaceBranch = useRef<number | undefined>(undefined);
   const lastSiHuaKey = useRef<string | undefined>(undefined);
@@ -209,7 +210,7 @@ export default function InsightPanel({ chart, selectedPalace, selectedSiHua }: I
   useEffect(() => {
     if (autoLoaded.current) return;
     autoLoaded.current = true;
-    sendMessage(TOPIC_PROMPTS.overview, true);
+    sendMessage(TOPIC_PROMPTS.overview, true, { fresh: true, topicKey: 'overview' });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Inject palace analysis when palace selected
@@ -237,7 +238,7 @@ ${selectedPalace.name}在命盘中的意义，以及这种星曜配置的整体�
 **【实际建议】**
 基于此宫的具体建议。`;
 
-    sendMessage(prompt, true);
+    sendMessage(prompt, true, { fresh: true });
   }, [selectedPalace]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 注入四化飞化分析
@@ -271,75 +272,132 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
 **【实际建议】**
 基于此四化的具体可操作建议。`;
 
-    sendMessage(prompt, true);
+    sendMessage(prompt, true, { fresh: true });
   }, [selectedSiHua]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const streamResponse = async (apiMessages: { role: 'user' | 'assistant'; content: string }[]) => {
+  const streamResponse = async (
+    apiMessages: { role: 'user' | 'assistant'; content: string }[],
+    signal: AbortSignal,
+  ) => {
     try {
       const res = await fetch('/api/interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chart, messages: apiMessages }),
+        signal,
       });
       if (res.status === 404) throw new Error('api-missing');
-      if (!res.ok) throw new Error('请求失败');
+      if (!res.ok) {
+        let detail = '';
+        try { detail = await res.text(); } catch { /* ignore */ }
+        throw new Error(detail || '请求失败');
+      }
       if (!res.body) throw new Error('无响应流');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let assistantText = '';
+      let lineBuf = '';
 
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      const applyDelta = (delta: string) => {
+        if (!delta || signal.aborted) return;
+        assistantText += delta;
+        const snapshot = assistantText;
+        setMessages(prev => {
+          const updated = [...prev];
+          if (updated.length === 0 || updated[updated.length - 1].role !== 'assistant') {
+            updated.push({ role: 'assistant', content: snapshot });
+          } else {
+            updated[updated.length - 1] = { role: 'assistant', content: snapshot };
+          }
+          return updated;
+        });
+      };
+
+      const consumeLine = (line: string) => {
+        if (!line.startsWith('data: ')) return;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') return;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.delta?.text ?? parsed.choices?.[0]?.delta?.content ?? '';
+          applyDelta(typeof delta === 'string' ? delta : '');
+        } catch { /* skip */ }
+      };
 
       while (true) {
+        if (signal.aborted) break;
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          try {
-            const delta = JSON.parse(data).delta?.text ?? '';
-            assistantText += delta;
-            setMessages(prev => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { role: 'assistant', content: assistantText };
-              return updated;
-            });
-          } catch { /* skip */ }
-        }
+        lineBuf += decoder.decode(value, { stream: true });
+        const parts = lineBuf.split('\n');
+        lineBuf = parts.pop() ?? '';
+        for (const line of parts) consumeLine(line.replace(/\r$/, ''));
+      }
+      if (!signal.aborted) {
+        lineBuf += decoder.decode();
+        if (lineBuf.trim()) consumeLine(lineBuf.replace(/\r$/, ''));
+      }
+
+      if (!signal.aborted && !assistantText.trim()) {
+        setMessages(prev => {
+          const updated = [...prev];
+          const msg = { role: 'assistant' as const, content: '解读结果为空，请再点一次主题或宫位重试。' };
+          if (updated.length && updated[updated.length - 1].role === 'assistant' && !updated[updated.length - 1].content) {
+            updated[updated.length - 1] = msg;
+          } else {
+            updated.push(msg);
+          }
+          return updated;
+        });
       }
     } catch (e) {
+      if (signal.aborted || (e instanceof DOMException && e.name === 'AbortError')) return;
       const missing = e instanceof Error && e.message === 'api-missing';
-      setMessages(prev => [...prev, { role: 'assistant', content: missing ? '开源版不含 AI 解读接口（/api/interpret），需要你自己实现后才能用，详见 README「快速开始」。排盘本身不需要任何 API Key。' : '解读失败，请稍后重试。' }]);
+      const errText = missing
+        ? '开源版不含 AI 解读接口（/api/interpret），需要你自己实现后才能用。'
+        : (`解读失败：${e instanceof Error ? e.message : '请稍后重试'}`);
+      setMessages(prev => [...prev, { role: 'assistant', content: errText }]);
     } finally {
-      setLoading(false);
-      loadingRef.current = false;
+      if (!signal.aborted) {
+        setLoading(false);
+        loadingRef.current = false;
+      }
     }
   };
 
-  const sendMessage = (text: string, hidden = false) => {
-    if (!text.trim() || loadingRef.current) return;
+  const sendMessage = (text: string, hidden = false, opts?: { fresh?: boolean; topicKey?: string }) => {
+    if (!text.trim()) return;
+    // 取消上一次未完成的请求，避免互相覆盖
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
     loadingRef.current = true;
     setLoading(true);
+    if (opts?.topicKey) setActiveTopic(opts.topicKey);
 
     const userMsg: Message = { role: 'user', content: text, hidden };
-    // Capture current messages synchronously via ref (avoids stale closure)
-    const apiMessages = [...messagesRef.current, userMsg].map(m => ({
+    const apiMessages = (opts?.fresh
+      ? [userMsg]
+      : [...messagesRef.current, userMsg]
+    ).map(m => ({
       role: m.role,
       content: m.content,
     }));
 
-    setMessages(prev => [...prev, userMsg]);
+    // 一次写好 user + 空 assistant，避免两次 setState 竞态把内容冲掉
+    const next: Message[] = opts?.fresh
+      ? [userMsg, { role: 'assistant', content: '' }]
+      : [...messagesRef.current, userMsg, { role: 'assistant', content: '' }];
+    messagesRef.current = next;
+    setMessages(next);
     setInput('');
-    streamResponse(apiMessages);
+    streamResponse(apiMessages, ac.signal);
   };
 
   const handleTopicClick = (topicKey: string) => {
-    if (loadingRef.current) return;
-    setActiveTopic(topicKey);
-    sendMessage(TOPIC_PROMPTS[topicKey], true);
+    sendMessage(TOPIC_PROMPTS[topicKey], true, { fresh: true, topicKey });
   };
 
   const handleSend = () => {
@@ -347,10 +405,10 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
   };
 
   return (
-    <div className="flex flex-col h-full rounded-xl overflow-hidden card-glass">
+    <div className="flex flex-col rounded-xl overflow-hidden" style={{ minHeight: 520, height: "100%", border: "1px solid #e5e2d9", background: "#ffffff" }}>
 
       {/* ── Topic buttons ── */}
-      <div className="flex-shrink-0 px-2 pt-2.5 pb-2" style={{ borderBottom: '1px solid var(--t-border)' }}>
+      <div className="flex-shrink-0 px-2 pt-2.5 pb-2" style={{ borderBottom: '1px solid #e5e2d9' }}>
         <div className="grid grid-cols-6 gap-1">
           {TOPICS.map(t => {
             const isActive = activeTopic === t.key;
@@ -358,12 +416,11 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
               <button
                 key={t.key}
                 onClick={() => handleTopicClick(t.key)}
-                disabled={loading}
-                className="py-1.5 text-[10px] font-medium rounded-lg transition-all duration-150 disabled:opacity-40"
+                className="py-1.5 text-[10px] font-medium rounded-lg transition-all duration-150"
                 style={{
                   background: isActive ? 'rgba(212,168,67,0.12)' : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(212,168,67,0.3)' : 'var(--t-border)'}`,
-                  color: isActive ? 'var(--t-gold)' : 'var(--t-faint)',
+                  border: `1px solid ${isActive ? 'rgba(212,168,67,0.3)' : 'var(--bdr)'}`,
+                  color: isActive ? '#b8922a' : '#6b6b63',
                 }}
               >
                 {t.label}
@@ -373,14 +430,18 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
         </div>
       </div>
 
+      <div style={{ padding: '6px 12px', fontSize: 11, color: '#6b6b63', background: '#fafaf9', borderBottom: '1px solid #e5e2d9' }}>
+        {loading ? '正在生成解读…（约 10–60 秒）' : (messages.some(m => m.role === 'assistant' && m.content) ? '可点上方主题切换，或在下方追问' : '点上方主题按钮开始解读')}
+      </div>
+
       {/* ── Messages ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 360, color: "#1a1a18", background: "#ffffff" }}>
 
         {/* Loading state before first message */}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-4xl mb-3" style={{ color: 'var(--t-gold)', opacity: 0.1 }}>✦</div>
-            <p className="text-[10px] animate-pulse" style={{ color: 'var(--t-faint)' }}>命格解读生成中…</p>
+            <div className="text-4xl mb-3" style={{ color: '#b8922a', opacity: 0.1 }}>✦</div>
+            <p className="text-[10px] animate-pulse" style={{ color: '#6b6b63' }}>命格解读生成中…</p>
           </div>
         )}
 
@@ -401,7 +462,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
                     style={{
                       background: 'rgba(212,168,67,0.08)',
                       border: '1px solid rgba(212,168,67,0.18)',
-                      color: 'var(--t-gold)',
+                      color: '#b8922a',
                     }}
                   >
                     {msg.content}
@@ -420,12 +481,15 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
               >
                 <div
                   className="text-[9px] tracking-widest mb-2 flex items-center gap-1.5"
-                  style={{ color: 'var(--t-faint)' }}
+                  style={{ color: '#6b6b63' }}
                 >
-                  <span style={{ color: 'var(--t-gold)', opacity: 0.4 }}>✦</span>
+                  <span style={{ color: '#b8922a', opacity: 0.4 }}>✦</span>
                   命理解读
                 </div>
                 <AiContent text={msg.content} streaming={loading && isLastMsg} />
+                {!msg.content && loading && isLastMsg && (
+                  <p style={{ color: '#6b6b63', fontSize: 12 }}>正在连接 MiniMax…</p>
+                )}
               </motion.div>
             );
           })}
@@ -433,7 +497,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
       </div>
 
       {/* ── Input ── */}
-      <div className="flex-shrink-0 px-3 pb-3 pt-2" style={{ borderTop: '1px solid var(--t-border)' }}>
+      <div className="flex-shrink-0 px-3 pb-3 pt-2" style={{ borderTop: '1px solid #e5e2d9' }}>
         <div className="flex gap-2">
           <input
             type="text"
@@ -444,9 +508,9 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
             disabled={loading}
             className="flex-1 rounded-lg px-3 py-2 text-[11px] focus:outline-none transition-colors"
             style={{
-              background: 'var(--t-card)',
-              border: '1px solid var(--t-border)',
-              color: 'var(--t-text)',
+              background: '#f4f3ef',
+              border: '1px solid #e5e2d9',
+              color: '#0d0d0b',
             }}
           />
           <button
@@ -456,7 +520,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
             style={{
               background: 'rgba(212,168,67,0.15)',
               border: '1px solid rgba(212,168,67,0.25)',
-              color: 'var(--t-gold)',
+              color: '#b8922a',
             }}
           >
             {loading ? '…' : '追问'}

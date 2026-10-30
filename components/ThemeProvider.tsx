@@ -8,35 +8,42 @@ const ThemeContext = createContext<{
   toggle: () => void;
 }>({ theme: 'dark', toggle: () => {} });
 
-function getInitialTheme(): Theme {
-  if (typeof document !== 'undefined') {
-    const attr = document.documentElement.getAttribute('data-theme');
-    if (attr === 'light' || attr === 'dark') return attr;
-  }
-  return 'dark';
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  // Always start with the same value on server and client to avoid hydration mismatch.
+  // localStorage / data-theme is applied only after mount.
+  const [theme, setTheme] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('ziwei-theme') as Theme | null;
-    if (saved === 'light' || saved === 'dark') setTheme(saved);
+    try {
+      const saved = localStorage.getItem('ziwei-theme') as Theme | null;
+      if (saved === 'light' || saved === 'dark') {
+        setTheme(saved);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'light' || attr === 'dark') setTheme(attr);
   }, []);
 
   useEffect(() => {
     if (!mounted) return;
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
-    localStorage.setItem('ziwei-theme', theme);
+    try {
+      localStorage.setItem('ziwei-theme', theme);
+    } catch {
+      /* ignore */
+    }
   }, [theme, mounted]);
 
   const toggle = () => {
     const root = document.documentElement;
     root.classList.add('theme-transitioning');
-    setTheme(t => t === 'dark' ? 'light' : 'dark');
+    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
     setTimeout(() => root.classList.remove('theme-transitioning'), 420);
   };
 
