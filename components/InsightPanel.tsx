@@ -2,6 +2,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart, Palace } from '@/lib/ziwei/types';
+import { scrubVendorText } from '@/lib/ai/public-error';
+
+function readableAiError(raw: string): string {
+  let text = raw.trim();
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown };
+    if (parsed && typeof parsed.error === 'string') text = parsed.error;
+  } catch {
+    /* 不是 JSON 就按原文清洗 */
+  }
+  return scrubVendorText(text, '请稍后重试');
+}
 import type { TimeView } from './TimeNav';
 
 interface Message {
@@ -154,7 +166,7 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
         if (sectionMatch) {
           return (
             <div key={i} className="pt-3 pb-0.5 first:pt-0">
-              <span className="text-[11px] font-semibold tracking-wide" style={{ color: '#b8922a' }}>
+              <span className="text-[11px] font-semibold tracking-wide" style={{ color: 'var(--ac)' }}>
                 【{sectionMatch[1]}】
               </span>
             </div>
@@ -163,11 +175,11 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
         if (line.trim() === '') return <div key={i} className="h-1" />;
         const parts = line.split(/\*\*(.+?)\*\*/);
         return (
-          <div key={i} className="text-[11px] leading-relaxed" style={{ color: '#1a1a18' }}>
+          <div key={i} className="text-[11px] leading-relaxed" style={{ color: 'var(--tx-1)' }}>
             {parts.map((part, j) =>
               j % 2 === 0
                 ? part
-                : <strong key={j} className="font-medium" style={{ color: '#0d0d0b' }}>{part}</strong>
+                : <strong key={j} className="font-medium" style={{ color: 'var(--tx-0)' }}>{part}</strong>
             )}
           </div>
         );
@@ -175,7 +187,7 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
       {streaming && (
         <span
           className="inline-block w-1.5 h-3 ml-0.5 animate-pulse rounded-sm align-middle"
-          style={{ background: '#b8922a', opacity: 0.6 }}
+          style={{ background: 'var(--ac)', opacity: 0.6 }}
         />
       )}
     </div>
@@ -356,7 +368,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
       const missing = e instanceof Error && e.message === 'api-missing';
       const errText = missing
         ? '开源版不含 AI 解读接口（/api/interpret），需要你自己实现后才能用。'
-        : (`解读失败：${e instanceof Error ? e.message : '请稍后重试'}`);
+        : (`解读失败：${readableAiError(e instanceof Error ? e.message : '')}`);
       setMessages(prev => [...prev, { role: 'assistant', content: errText }]);
     } finally {
       if (!signal.aborted) {
@@ -405,10 +417,10 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
   };
 
   return (
-    <div className="flex flex-col rounded-xl overflow-hidden" style={{ minHeight: 520, height: "100%", border: "1px solid #e5e2d9", background: "#ffffff" }}>
+    <div className="flex flex-col rounded-xl overflow-hidden" style={{ minHeight: 520, height: "100%", border: "1px solid var(--bdr)", background: "var(--bg-card)" }}>
 
       {/* ── Topic buttons ── */}
-      <div className="flex-shrink-0 px-2 pt-2.5 pb-2" style={{ borderBottom: '1px solid #e5e2d9' }}>
+      <div className="flex-shrink-0 px-2 pt-2.5 pb-2" style={{ borderBottom: '1px solid var(--bdr)' }}>
         <div className="grid grid-cols-6 gap-1">
           {TOPICS.map(t => {
             const isActive = activeTopic === t.key;
@@ -418,9 +430,9 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
                 onClick={() => handleTopicClick(t.key)}
                 className="py-1.5 text-[10px] font-medium rounded-lg transition-all duration-150"
                 style={{
-                  background: isActive ? 'rgba(212,168,67,0.12)' : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(212,168,67,0.3)' : 'var(--bdr)'}`,
-                  color: isActive ? '#b8922a' : '#6b6b63',
+                  background: isActive ? 'var(--ac-bg)' : 'transparent',
+                  border: `1px solid ${isActive ? 'var(--ac-bdr)' : 'var(--bdr)'}`,
+                  color: isActive ? 'var(--ac)' : 'var(--tx-3)',
                 }}
               >
                 {t.label}
@@ -430,18 +442,18 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
         </div>
       </div>
 
-      <div style={{ padding: '6px 12px', fontSize: 11, color: '#6b6b63', background: '#fafaf9', borderBottom: '1px solid #e5e2d9' }}>
+      <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--tx-3)', background: 'var(--bg-1)', borderBottom: '1px solid var(--bdr)' }}>
         {loading ? '正在生成解读…（约 10–60 秒）' : (messages.some(m => m.role === 'assistant' && m.content) ? '可点上方主题切换，或在下方追问' : '点上方主题按钮开始解读')}
       </div>
 
       {/* ── Messages ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 360, color: "#1a1a18", background: "#ffffff" }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 360, color: "var(--tx-1)", background: "var(--bg-card)" }}>
 
         {/* Loading state before first message */}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-4xl mb-3" style={{ color: '#b8922a', opacity: 0.1 }}>✦</div>
-            <p className="text-[10px] animate-pulse" style={{ color: '#6b6b63' }}>命格解读生成中…</p>
+            <div className="text-4xl mb-3" style={{ color: 'var(--ac)', opacity: 0.18 }}>✦</div>
+            <p className="text-[10px] animate-pulse" style={{ color: 'var(--tx-3)' }}>命格解读生成中…</p>
           </div>
         )}
 
@@ -460,9 +472,9 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
                   <div
                     className="max-w-[85%] rounded-xl px-3 py-2 text-[11px]"
                     style={{
-                      background: 'rgba(212,168,67,0.08)',
-                      border: '1px solid rgba(212,168,67,0.18)',
-                      color: '#b8922a',
+                      background: 'var(--ac-bg)',
+                      border: '1px solid var(--ac-bdr)',
+                      color: 'var(--ac)',
                     }}
                   >
                     {msg.content}
@@ -481,14 +493,14 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
               >
                 <div
                   className="text-[9px] tracking-widest mb-2 flex items-center gap-1.5"
-                  style={{ color: '#6b6b63' }}
+                  style={{ color: 'var(--tx-3)' }}
                 >
-                  <span style={{ color: '#b8922a', opacity: 0.4 }}>✦</span>
+                  <span style={{ color: 'var(--ac)', opacity: 0.55 }}>✦</span>
                   命理解读
                 </div>
                 <AiContent text={msg.content} streaming={loading && isLastMsg} />
                 {!msg.content && loading && isLastMsg && (
-                  <p style={{ color: '#6b6b63', fontSize: 12 }}>正在连接 MiniMax…</p>
+                  <p style={{ color: 'var(--tx-3)', fontSize: 12 }}>正在连接解读…</p>
                 )}
               </motion.div>
             );
@@ -497,7 +509,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
       </div>
 
       {/* ── Input ── */}
-      <div className="flex-shrink-0 px-3 pb-3 pt-2" style={{ borderTop: '1px solid #e5e2d9' }}>
+      <div className="flex-shrink-0 px-3 pb-3 pt-2" style={{ borderTop: '1px solid var(--bdr)' }}>
         <div className="flex gap-2">
           <input
             type="text"
@@ -508,9 +520,9 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
             disabled={loading}
             className="flex-1 rounded-lg px-3 py-2 text-[11px] focus:outline-none transition-colors"
             style={{
-              background: '#f4f3ef',
-              border: '1px solid #e5e2d9',
-              color: '#0d0d0b',
+              background: 'var(--bg-1)',
+              border: '1px solid var(--bdr)',
+              color: 'var(--tx-0)',
             }}
           />
           <button
@@ -518,9 +530,9 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
             disabled={loading || !input.trim()}
             className="px-3 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
-              background: 'rgba(212,168,67,0.15)',
-              border: '1px solid rgba(212,168,67,0.25)',
-              color: '#b8922a',
+              background: 'var(--ac-bg)',
+              border: '1px solid var(--ac-bdr)',
+              color: 'var(--ac)',
             }}
           >
             {loading ? '…' : '追问'}

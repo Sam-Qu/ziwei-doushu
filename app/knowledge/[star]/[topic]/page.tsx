@@ -103,7 +103,7 @@ export default async function KnowledgePage({ params }: { params: Promise<{ star
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* 顶栏 */}
-      <div className="px-6 py-4 flex items-center justify-between"
+      <div className="px-6 py-4 flex items-center justify-between topbar-safe"
         style={{ borderBottom: '1px solid rgba(184,146,42,0.15)', background: 'var(--bg-page)' }}>
         <Link href="/" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.3em', textDecoration: 'none' }}>
           ← 首页

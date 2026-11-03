@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { getMiniMax, getMiniMaxModel } from '@/lib/ai/minimax';
 import { SYSTEM_PROMPT, buildUserMessage } from '@/lib/ai/prompt';
+import { scrubVendorText } from '@/lib/ai/public-error';
 
 export const runtime = 'nodejs';
 
@@ -48,7 +49,10 @@ export async function POST(req: NextRequest) {
   try {
     client = getMiniMax();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'AI 配置错误';
+    const msg = scrubVendorText(
+      e instanceof Error ? e.message : '',
+      '解读服务尚未配置，请稍后再试。',
+    );
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -100,7 +104,7 @@ export async function POST(req: NextRequest) {
         controller.enqueue(sseLine('[DONE]'));
         controller.close();
       } catch (e) {
-        const msg = e instanceof Error ? e.message : '解读失败';
+        const msg = scrubVendorText(e instanceof Error ? e.message : '', '请再试一次。');
         // 已开始流式时只能往流里写错误提示；前端会拼进 assistant 气泡
         try {
           controller.enqueue(

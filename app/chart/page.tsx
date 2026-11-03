@@ -16,12 +16,12 @@ export default function ChartPage() {
 
   if (!chart) {
     return (
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px' }}>
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 64px 48px 20px' }}>
         <p style={{ marginBottom: 12 }}>
-          <a href="/" style={{ color: '#b8860b', textDecoration: 'none', fontSize: 14 }}>← 回主页</a>
+          <a href="/" style={{ color: 'var(--ac)', textDecoration: 'none', fontSize: 14 }}>← 回主页</a>
         </p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>开始排盘</h1>
-        <p style={{ color: '#888', marginBottom: 32, fontSize: 15, lineHeight: 1.7 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, color: 'var(--tx-0)' }}>开始排盘</h1>
+        <p style={{ color: 'var(--tx-3)', marginBottom: 32, fontSize: 15, lineHeight: 1.7 }}>
           填写生日，马上看命盘和解读。
         </p>
         <BirthForm onSubmit={(info: BirthInfo) => setChart(generateChart(info))} />
@@ -30,13 +30,13 @@ export default function ChartPage() {
   }
 
   return (
-    <main style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 64px 24px 16px', color: 'var(--tx-1)' }}>
       <button
         type="button"
         onClick={() => { setChart(null); setSelectedPalace(null); }}
         style={{
-          marginBottom: 16, padding: '8px 16px', cursor: 'pointer',
-          border: '1px solid #ccc', borderRadius: 999, background: 'transparent', fontSize: 14,
+          marginBottom: 16, padding: '8px 16px', cursor: 'pointer', color: 'var(--tx-1)',
+          border: '1px solid var(--bdr-med)', borderRadius: 999, background: 'transparent', fontSize: 14,
         }}
       >
         ← 重新填写
@@ -60,11 +60,11 @@ export default function ChartPage() {
         }}
       >
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#b8860b' }}>你的命盘</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--ac)' }}>你的命盘</div>
           <ChartBoard chart={chart} onPalaceSelect={setSelectedPalace} />
         </div>
         <div style={{ minHeight: 520, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#b8860b' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--ac)' }}>
             AI 解读（可点主题，或点左边宫位）
           </div>
           <div style={{ flex: 1, minHeight: 480, height: 480 }}>

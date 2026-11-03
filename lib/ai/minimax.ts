@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 export function getMiniMax() {
   const apiKey = process.env.MINIMAX_API_KEY;
   if (!apiKey) {
-    throw new Error('缺少 MINIMAX_API_KEY，请在 .env.local 中配置');
+    throw new Error('解读服务尚未配置，请稍后再试。');
   }
   return new OpenAI({
     apiKey,
