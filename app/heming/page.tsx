@@ -5,8 +5,6 @@ import BirthForm, { type BirthFormState } from '@/components/BirthForm';
 import { formToBirthInfo } from '@/lib/ziwei/share';
 import { generateChart as buildChart } from '@/lib/ziwei/algorithm';
 import type { BirthInfo, ZiweiChart } from '@/lib/ziwei/types';
-import { useTheme } from '@/components/ThemeProvider';
-
 // ─── AiContent 渲染器（与 InsightPanel 一致）────────────────
 function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
   const lines = text.split('\n');
@@ -49,8 +47,6 @@ function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
 
 export default function HemingPage() {
   const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   // ─── 双方命盘状态 ─────────────────────────────────────────
   const [chartA, setChartA] = useState<ZiweiChart | null>(null);
@@ -149,8 +145,8 @@ export default function HemingPage() {
   }, [chartA, chartB, formA, formB, generateChart]);
 
   const cardStyle = {
-    background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(200,160,60,0.2)'}`,
+    background: 'var(--sheet-bg)',
+    border: '1px solid var(--sheet-border)',
     borderRadius: '16px',
     padding: '24px',
   };
@@ -165,10 +161,10 @@ export default function HemingPage() {
       {/* 顶栏 */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        background: isDark ? 'rgba(2,8,16,0.88)' : 'rgba(250,245,235,0.92)',
+        background: 'var(--sheet-bar)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--bdr)',
-        display: 'flex', alignItems: 'center', padding: '0 24px', height: '52px', gap: '16px',
+        display: 'flex', alignItems: 'center', padding: '0 64px 0 24px', height: '52px', gap: '16px',
       }}>
         <button
           onClick={() => router.push('/')}
@@ -249,11 +245,12 @@ export default function HemingPage() {
               <button
                 onClick={() => runAnalysis()}
                 style={{
-                  padding: '14px 40px', borderRadius: 'var(--r-pill)', border: 'none',
-                  background: 'linear-gradient(135deg, #9a6210, #c88020)',
-                  color: '#fff8e8', fontSize: '14px', fontWeight: 600,
+                  padding: '14px 40px', borderRadius: 'var(--r-pill)',
+                  border: '1px solid var(--heming-btn-line)',
+                  background: 'var(--heming-btn)',
+                  color: 'var(--heming-btn-ink)', fontSize: '14px', fontWeight: 600,
                   letterSpacing: '0.15em', cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(140,100,20,0.25)',
+                  boxShadow: 'var(--heming-btn-shadow)',
                   transition: 'transform 0.15s',
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}

@@ -3,7 +3,7 @@ export const metadata = { title: '隐私政策 · 紫微命盘', description: '�
 export default function PrivacyPage() {
   return (
     <>
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--bg-0)', borderBottom: '1px solid var(--bdr)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--bg-0)', borderBottom: '1px solid var(--bdr)', padding: '14px 64px 14px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--tx-3)', textDecoration: 'none' }}>
           <span style={{ fontSize: '16px' }}>‹</span>
           <span>返回首页</span>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         <li>支付服务商（支付宝 / 微信支付）：处理订单结算</li>
         <li>短信服务商（如阿里云短信）：发送验证码</li>
         <li>云服务商（如 Vercel / Cloudflare / 阿里云）：技术承载</li>
-        <li>AI 解读服务（如 Anthropic Claude）：处理你的"自由追问"对话（已做匿名化）</li>
+        <li>AI 解读服务：处理你的"自由追问"对话（已做匿名化）</li>
         <li>司法机关或政府部门基于法律法规的合法要求</li>
       </ul>
 

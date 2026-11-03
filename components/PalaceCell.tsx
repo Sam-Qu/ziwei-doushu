@@ -138,7 +138,7 @@ export default function PalaceCell({
             >
               <span className={clsx(
                 'text-[13px] leading-tight font-bold tracking-tight cursor-pointer hover:brightness-125 transition-all',
-                star.brightness === 'bright' ? 'text-amber-300' : star.brightness === 'dim' ? 'text-amber-700/80' : 'text-amber-500',
+                star.brightness === 'bright' ? 'text-amber-300 light-star-bright' : star.brightness === 'dim' ? 'text-amber-700/80 light-star-dim' : 'text-amber-500 light-star',
               )}>
                 {star.name}
               </span>

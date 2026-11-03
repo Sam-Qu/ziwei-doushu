@@ -17,7 +17,7 @@ export default function LibraryHomePage() {
   return (
     <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
       {/* 顶栏 */}
-      <div className="px-6 py-4 flex items-center justify-between"
+      <div className="px-6 py-4 flex items-center justify-between topbar-safe"
         style={{ borderBottom: '1px solid rgba(184,146,42,0.15)', background: 'var(--bg-page)' }}>
         <Link href="/" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.3em', textDecoration: 'none' }}>
           ← 返回首页

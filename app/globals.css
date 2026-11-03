@@ -4,29 +4,30 @@
 
 /* ─── 2.0 设计系统 Token ─────────────────────────────────── */
 :root {
+  color-scheme: light;
   /* 字体 */
   --font: -apple-system, 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Menlo', 'Noto Sans Mono', 'Consolas', monospace;
 
-  /* 背景层级 */
-  --bg-0: #FAFAF9;
-  --bg-1: #F4F3EF;
-  --bg-2: #ECEAE4;
-  --bg-inv: #0D0D0B;
+  /* 浅色星盘：象牙底 + 极淡墨蓝灰，金只做点缀 */
+  --bg-0: #f3f1ea;
+  --bg-1: #e7ebf0;
+  --bg-2: #dde3ea;
+  --bg-inv: #1c2430;
 
-  /* 文字层级 */
-  --tx-0: #0D0D0B;
-  --tx-1: #1A1A18;
-  --tx-2: #4A4A45;
-  --tx-3: #8A8A82;
-  --tx-inv: #F0EDE8;
-  --tx-inv2: rgba(240,237,232,0.65);
+  /* 文字层级：墨色正文 */
+  --tx-0: #1c2330;
+  --tx-1: #2a3340;
+  --tx-2: #4a5564;
+  --tx-3: #6d7784;
+  --tx-inv: #f4f1ea;
+  --tx-inv2: rgba(244,241,234,0.72);
 
-  /* 唯一强调色：墨金 */
-  --ac:     #B8922A;
-  --ac-dim: #7A5F1A;
-  --ac-bg:  rgba(184,146,42,0.07);
-  --ac-bdr: rgba(184,146,42,0.22);
+  /* 同族墨金，只作强调 */
+  --ac:     #8d6a28;
+  --ac-dim: #6e5018;
+  --ac-bg:  rgba(141,106,40,0.08);
+  --ac-bdr: rgba(141,106,40,0.28);
 
   /* 四化语义色（仅用于命盘数据，不用于UI装饰） */
   --lu:   #2D7A4A;
@@ -34,10 +35,10 @@
   --ke:   #8A7018;
   --ji:   #A83228;
 
-  /* 边框 */
-  --bdr:      rgba(0,0,0,0.07);
-  --bdr-med:  rgba(0,0,0,0.11);
-  --bdr-heavy:rgba(0,0,0,0.18);
+  /* 边框：墨线，不是金框铺满 */
+  --bdr:      rgba(28,35,48,0.10);
+  --bdr-med:  rgba(28,35,48,0.16);
+  --bdr-heavy:rgba(28,35,48,0.24);
 
   /* 阴影 */
   --sh-xs: 0 1px 2px rgba(0,0,0,0.05);
@@ -46,8 +47,53 @@
   --sh-lg: 0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
 
   /* 卡片/内容块背景 */
-  --bg-card: #FFFFFF;
-  --bg-page: #fbf6e8;
+  --bg-card: #f7f6f2;
+  --bg-page: #f3f1ea;
+
+  /* 首页沿用的语义色。深色值在 [data-theme="dark"] 里保持原海军金。 */
+  --hero-second: #2a3340;
+  --hero-muted: #5c6774;
+  --hero-tag: rgba(90,74,40,0.75);
+  --hero-footer: #6d7784;
+  --nav-line: rgba(28,35,48,0.10);
+  --cta-bg: #1c2330;
+  --cta-ink: #f4f1ea;
+  --gold-line: rgba(141,106,40,0.35);
+
+  --form-bg: rgba(247,246,242,0.94);
+  --form-border: rgba(28,35,48,0.12);
+  --form-label: rgba(28,35,48,0.62);
+  --form-input-bg: #fbfaf7;
+  --form-input-border: rgba(28,35,48,0.16);
+  --form-input: #1c2330;
+  --form-focus: rgba(141,106,40,0.55);
+  --form-error: #b42318;
+  --form-panel: rgba(231,235,240,0.72);
+  --form-panel-border: rgba(28,35,48,0.10);
+  --form-gold: #8d6a28;
+  --form-loc: rgba(74,84,98,0.82);
+  --form-hint: rgba(74,84,98,0.78);
+  --form-hint-soft: rgba(74,84,98,0.72);
+  --form-track: rgba(28,35,48,0.12);
+  --form-track-done: #8d6a28;
+  --form-muted: rgba(74,84,98,0.72);
+  --form-summary-bg: rgba(37,99,235,0.07);
+  --form-summary-border: rgba(37,99,235,0.25);
+  --form-summary: rgba(37,99,235,0.85);
+  --form-btn: #1c2330;
+  --form-btn-ink: #f4f1ea;
+  --form-btn-loading: rgba(28,35,48,0.08);
+  --form-btn-loading-ink: rgba(28,35,48,0.38);
+  --form-btn-line: rgba(141,106,40,0.45);
+  --form-btn-shadow: none;
+  --sheet-bg: rgba(247,246,242,0.94);
+  --sheet-border: rgba(28,35,48,0.12);
+  --sheet-bar: rgba(243,241,234,0.92);
+  --heming-btn: #1c2330;
+  --heming-btn-ink: #f4f1ea;
+  --heming-btn-line: rgba(141,106,40,0.45);
+  --heming-btn-shadow: none;
+  --cta-shadow: none;
 
   /* InsightPanel / legacy aliases */
   --t-gold: var(--ac);
@@ -57,6 +103,7 @@
   --t-border: var(--bdr);
   --t-card: var(--bg-card);
   --t-bg: var(--bg-0);
+  --t-surface: rgba(28,35,48,0.04);
 
 
   /* 圆角 */
@@ -68,8 +115,9 @@
   --r-pill:999px;
 }
 
-/* ─── 暗色模式 Token 覆盖 ──────────────────────────────── */
+/* ─── 暗色模式 Token 覆盖（默认） ──────────────────────── */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-0: #020810;
   --bg-1: #0a1020;
   --bg-2: #141e30;
@@ -106,6 +154,51 @@
   --t-border: var(--bdr);
   --t-card: var(--bg-card);
   --t-bg: var(--bg-0);
+  --t-surface: transparent;
+
+  --hero-second: #b8c6df;
+  --hero-muted: #9db0d0;
+  --hero-tag: rgba(212,168,67,0.7);
+  --hero-footer: rgba(255,255,255,0.28);
+  --nav-line: rgba(255,255,255,0.08);
+  --cta-bg: linear-gradient(135deg,#b8892a,#f0d070,#b8892a);
+  --cta-ink: #08080a;
+  --gold-line: rgba(212,168,67,0.4);
+
+  --form-bg: rgba(8,16,40,0.85);
+  --form-border: rgba(255,255,255,0.12);
+  --form-label: rgba(180,200,225,0.9);
+  --form-input-bg: rgba(255,255,255,0.06);
+  --form-input-border: rgba(255,255,255,0.18);
+  --form-input: #e8eef8;
+  --form-focus: rgba(212,168,67,0.5);
+  --form-error: #f87171;
+  --form-panel: rgba(255,255,255,0.03);
+  --form-panel-border: rgba(255,255,255,0.07);
+  --form-gold: #d4a843;
+  --form-loc: rgba(180,210,235,0.85);
+  --form-hint: rgba(170,195,220,0.75);
+  --form-hint-soft: rgba(165,185,210,0.7);
+  --form-track: rgba(255,255,255,0.08);
+  --form-track-done: #d4a843;
+  --form-muted: rgba(190,205,225,0.7);
+  --form-summary-bg: rgba(37,99,235,0.12);
+  --form-summary-border: rgba(37,99,235,0.35);
+  --form-summary: rgba(147,197,253,0.9);
+  --form-btn: linear-gradient(135deg, rgba(180,130,40,0.9), rgba(240,200,80,0.9));
+  --form-btn-ink: #08080a;
+  --form-btn-loading: rgba(212,168,67,0.15);
+  --form-btn-loading-ink: rgba(212,168,67,0.4);
+  --form-btn-line: transparent;
+  --form-btn-shadow: 0 4px 20px rgba(212,168,67,0.2);
+  --sheet-bg: rgba(255,255,255,0.04);
+  --sheet-border: rgba(255,255,255,0.1);
+  --sheet-bar: rgba(2,8,16,0.88);
+  --heming-btn: linear-gradient(135deg, #9a6210, #c88020);
+  --heming-btn-ink: #fff8e8;
+  --heming-btn-line: transparent;
+  --heming-btn-shadow: 0 4px 16px rgba(140,100,20,0.25);
+  --cta-shadow: 0 8px 28px rgba(184,146,42,0.28);
 }
 
 /* ─── 全局基础 ───────────────────────────────────────────── */
@@ -326,12 +419,57 @@ body {
   color: transparent;
   display: inline-block;
 }
-.grad-text-dark {
+.grad-text,
+.grad-text-light {
+  background-image: linear-gradient(160deg, #1c2330 0%, #3a4658 46%, #6e5014 78%, #1c2330 100%);
+}
+.grad-text-dark,
+[data-theme="dark"] .grad-text {
   background-image: linear-gradient(160deg, #c8993a 0%, #f0d070 40%, #c8993a 70%, #f0c755 100%);
 }
-.grad-text-light {
-  background-image: linear-gradient(160deg, #6a4206 0%, #9a6a10 40%, #6a4206 70%, #885010 100%);
+
+.page-shell {
+  background: var(--bg-0);
+  min-height: 100svh;
 }
+[data-theme="light"] .page-shell {
+  background:
+    radial-gradient(ellipse 78% 42% at 50% -12%, rgba(88, 108, 138, 0.08), transparent 58%),
+    var(--bg-0);
+}
+
+.theme-toggle-slot {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 70;
+}
+.theme-toggle {
+  display: inline-flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--ac-bdr);
+  color: var(--ac);
+  background: color-mix(in srgb, var(--bg-0) 84%, transparent);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+.theme-toggle svg {
+  height: 16px;
+  width: 16px;
+}
+.theme-icon-sun { display: none; }
+[data-theme="light"] .theme-icon-moon { display: none; }
+[data-theme="light"] .theme-icon-sun { display: block; }
+.topbar-safe { padding-right: 58px; }
+
+[data-theme="light"] .light-star-bright { color: #5c4310; }
+[data-theme="light"] .light-star { color: #7a5a16; }
+[data-theme="light"] .light-star-dim { color: #6e655c; }
+
 
 /* ─── 命盘工作台响应式 ─────────────────────────────────── */
 .chart-page-root {
@@ -452,3 +590,5 @@ body {
    select 本身是半透明底 + 浅色字，Windows 上原生下拉列表是白底，浅灰字配白底看不清（#14） */
 [data-theme="dark"] select { color-scheme: dark; }
 [data-theme="dark"] select option { background-color: var(--bg-2); color: var(--tx-1); }
+[data-theme="light"] select { color-scheme: light; }
+[data-theme="light"] select option { background-color: #fbfaf7; color: var(--tx-0); }

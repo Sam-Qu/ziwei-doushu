@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react';
 
 export type Theme = 'dark' | 'light';
 
@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setMounted(true);
     try {
       const saved = localStorage.getItem('ziwei-theme') as Theme | null;
@@ -42,8 +42,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggle = () => {
     const root = document.documentElement;
+    const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const next: Theme = current === 'light' ? 'dark' : 'light';
     root.classList.add('theme-transitioning');
-    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+    root.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('ziwei-theme', next);
+    } catch {
+      /* ignore */
+    }
+    setTheme(next);
     setTimeout(() => root.classList.remove('theme-transitioning'), 420);
   };
 
